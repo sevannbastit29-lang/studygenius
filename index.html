@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StudyGenius - Studio de Révision Expert</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Support KaTeX pour les mathématiques et formules -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js" onload="renderMath()"></script>
+    <style>
+        .hidden-view { display: none; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans min-h-screen pb-12">
+
+    <!-- En-tête -->
+    <header class="bg-white shadow-sm sticky top-0 z-10">
+        <div class="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
+            <h1 class="text-2xl font-bold text-blue-600 cursor-pointer flex items-center" onclick="showDashboard()">
+                <i class="fas fa-brain mr-2"></i>StudyGenius <span class="text-xs bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full ml-2 font-normal">Expert</span>
+            </h1>
+            <button onclick="showDashboard()" class="text-slate-500 hover:text-blue-600 font-medium">
+                <i class="fas fa-home"></i> Accueil
+            </button>
+        </div>
+    </header>
+
+    <main class="max-w-6xl mx-auto px-4 py-8">
+        
+        <!-- ÉCRAN : TABLEAU DE BORD -->
+        <div id="dashboard-view">
+            <div class="flex justify-between items-center mb-6">
+                <div>
+                    <h2 class="text-3xl font-bold">Mes Matières</h2>
+                    <p class="text-gray-500 text-sm mt-1">Générez vos fiches expertes, exercices corrigés, quiz chronométrés et cartes mentales.</p>
+                </div>
+                <button onclick="openNewSubjectModal()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition flex items-center shadow-sm">
+                    <i class="fas fa-plus mr-2"></i>Nouvelle Matière
+                </button>
+            </div>
+
+            <!-- Statistiques globales -->
+            <div id="stats-banner" class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+                <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex items-center">
+                    <div class="w-10 h-10 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center text-lg mr-3"><i class="fas fa-book"></i></div>
+                    <div><p class="text-xs text-gray-400 font-medium">Matières</p><p id="stat-subjects" class="text-xl font-bold">0</p></div>
+                </div>
+                <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex items-center">
+                    <div class="w-10 h-10 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center text-lg mr-3"><i class="fas fa-file-alt"></i></div>
+                    <div><p class="text-xs text-gray-400 font-medium">Fiches Magistrales</p><p id="stat-sheets" class="text-xl font-bold">0</p></div>
+                </div>
+                <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex items-center">
+                    <div class="w-10 h-10 rounded-lg bg-green-50 text-green-600 flex items-center justify-center text-lg mr-3"><i class="fas fa-pen-fancy"></i></div>
+                    <div><p class="text-xs text-gray-400 font-medium">Exercices corrigés</p><p id="stat-exercises" class="text-xl font-bold">0</p></div>
+                </div>
+                <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex items-center">
+                    <div class="w-10 h-10 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center text-lg mr-3"><i class="fas fa-trophy"></i></div>
+                    <div><p class="text-xs text-gray-400 font-medium">Quiz / QCM</p><p id="stat-quizzes" class="text-xl font-bold">0</p></div>
+                </div>
+            </div>
+            
+            <div id="subjects-grid" class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Les matières s'afficheront ici -->
+            </div>
+        </div>
+
+        <!-- ÉCRAN : DÉTAIL DE LA MATIÈRE -->
+        <div id="subject-view" class="hidden-view">
+            <div class="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                    <button onclick="showDashboard()" class="text-blue-600 hover:underline mb-2 inline-block text-sm">
+                        &larr; Retour aux matières
+                    </button>
+                    <div class="flex items-center gap-3">
+                        <h2 id="current-subject-title" class="text-3xl font-bold">Titre de la matière</h2>
+                        <div class="flex gap-2">
+                            <button onclick="openEditSubjectModal()" title="Renommer la matière" class="text-gray-400 hover:text-blue-600 p-1 transition"><i class="fas fa-pen text-sm"></i></button>
+                            <button onclick="deleteCurrentSubject()" title="Supprimer la matière" class="text-gray-400 hover:text-red-600 p-1 transition"><i class="fas fa-trash text-sm"></i></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Onglets -->
+            <div class="flex border-b border-gray-200 mb-6 flex-wrap gap-1">
+                <button onclick="switchTab('generator')" id="tab-generator" class="py-2 px-4 border-b-2 border-blue-600 text-blue-600 font-medium text-sm"><i class="fas fa-magic mr-1"></i> Générateur IA</button>
+                <button onclick="switchTab('source')" id="tab-source" class="py-2 px-4 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium text-sm"><i class="fas fa-folder-open mr-1"></i> Cours source</button>
+                <button onclick="switchTab('masterSheet')" id="tab-masterSheet" class="py-2 px-4 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium text-sm"><i class="fas fa-graduation-cap mr-1"></i> Fiche de Révision Experte</button>
+                <button onclick="switchTab('exercises')" id="tab-exercises" class="py-2 px-4 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium text-sm"><i class="fas fa-pen-fancy mr-1"></i> Exercices</button>
+                <button onclick="switchTab('quiz')" id="tab-quiz" class="py-2 px-4 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium text-sm"><i class="fas fa-stopwatch mr-1"></i> Mode Examen (Quiz)</button>
+                <button onclick="switchTab('mindmap')" id="tab-mindmap" class="py-2 px-4 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium text-sm"><i class="fas fa-project-diagram mr-1"></i> Carte mentale</button>
+            </div>
+
+            <!-- Contenu : Générateur -->
+            <div id="content-generator">
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 max-w-2xl mx-auto">
+                    <h3 class="text-xl font-semibold mb-4">Générer vos fiches et exercices experts</h3>
+                    
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Clé API Google Gemini :</label>
+                        <input type="password" id="api-key-input" placeholder="Collez votre clé API..." class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+
+                    <div class="mb-6 p-4 bg-blue-50 border border-blue-100 rounded-lg">
+                        <label class="block text-sm font-bold text-blue-800 mb-2"><i class="fas fa-file-upload mr-1"></i> Importer des fichiers (PDF ou TXT - Plusieurs possibles) :</label>
+                        <input type="file" id="file-input" accept=".pdf,.txt" multiple class="w-full mb-3 text-sm text-slate-700 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 cursor-pointer">
+                        
+                        <!-- Liste des fichiers sélectionnés -->
+                        <div id="file-list-container" class="mb-4 space-y-1">
+                            <p class="text-xs text-gray-500 italic">Aucun fichier sélectionné.</p>
+                        </div>
+                        
+                        <div class="flex items-center gap-2 mb-2">
+                            <hr class="flex-grow border-blue-200">
+                            <span class="text-xs font-semibold text-blue-400 uppercase">OU</span>
+                            <hr class="flex-grow border-blue-200">
+                        </div>
+
+                        <label class="block text-sm font-bold text-blue-800 mb-2">Coller du texte supplémentaire :</label>
+                        <textarea id="course-text" rows="4" placeholder="Collez du texte additionnel ici si besoin..." class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none resize-none bg-white"></textarea>
+                    </div>
+                    
+                    <button onclick="generateContent()" id="generate-btn" class="w-full bg-indigo-600 text-white font-bold py-3 rounded-lg hover:bg-indigo-700 transition flex justify-center items-center shadow-md">
+                        <i class="fas fa-magic mr-2"></i> Lancer l'analyse experte (Multi-fichiers)
+                    </button>
+                    <p id="loading-msg" class="text-center text-indigo-600 mt-4 hidden font-medium"><i class="fas fa-spinner fa-spin mr-2"></i> L'IA analyse tous vos documents et rédige la fiche magistrale...</p>
+                    <div id="error-msg" class="mt-4 hidden p-4 bg-red-50 border-l-4 border-red-500 text-red-700 rounded">
+                        <p class="font-bold">Erreur rencontrée :</p>
+                        <p id="error-details" class="font-mono text-sm mt-1 break-all"></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Contenu : Cours Source -->
+            <div id="content-source" class="hidden-view">
+                <div class="bg-white p-8 rounded-xl shadow-sm border border-gray-100 max-w-4xl mx-auto">
+                    <h3 class="text-xl font-bold mb-4 text-blue-600"><i class="fas fa-folder-open mr-2"></i> Documents de base importés</h3>
+                    <div class="bg-slate-50 p-6 rounded-lg border border-gray-200 whitespace-pre-wrap font-mono text-sm text-slate-700 max-h-[600px] overflow-y-auto" id="source-container">
+                        <p class="text-gray-500 italic font-sans">Aucun cours source enregistré.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Contenu : Fiche de Révision Experte Magistrale -->
+            <div id="content-masterSheet" class="hidden-view">
+                <div class="bg-white p-10 rounded-xl shadow-sm border border-gray-100 max-w-4xl mx-auto leading-relaxed math-content space-y-6" id="masterSheet-container">
+                    <p class="text-gray-500 italic">Aucune fiche magistrale générée pour le moment.</p>
+                </div>
+            </div>
+
+            <!-- Contenu : Exercices Corrigés -->
+            <div id="content-exercises" class="hidden-view">
+                <div class="max-w-3xl mx-auto space-y-6 math-content" id="exercises-container">
+                    <p class="text-gray-500 italic text-center">Aucun exercice généré pour le moment.</p>
+                </div>
+            </div>
+
+            <!-- Contenu : Mode Examen -->
+            <div id="content-quiz" class="hidden-view">
+                <div class="max-w-2xl mx-auto bg-white p-8 rounded-xl shadow-sm border border-gray-100" id="quiz-box">
+                    <div id="quiz-intro" class="text-center py-8">
+                        <h3 class="text-2xl font-bold mb-3">Mode Examen / Quiz Chrono</h3>
+                        <p class="text-gray-500 mb-6">Testez vos connaissances en conditions réelles avec un chronomètre et une notation sur 20 à la fin.</p>
+                        <button onclick="startQuizExam()" class="bg-blue-600 text-white font-bold px-6 py-3 rounded-lg hover:bg-blue-700 transition">Démarrer l'examen</button>
+                    </div>
+                    <div id="quiz-active" class="hidden">
+                        <div class="flex justify-between items-center mb-6 border-b pb-4">
+                            <span id="quiz-progress" class="font-bold text-sm text-blue-600">Question 1 / 5</span>
+                            <span id="quiz-timer" class="font-mono font-bold text-red-500 bg-red-50 px-3 py-1 rounded-lg"><i class="fas fa-stopwatch mr-1"></i> 00:00</span>
+                        </div>
+                        <h4 id="quiz-question-title" class="font-bold text-lg mb-4 math-content">Question ici...</h4>
+                        <div id="quiz-options-container" class="space-y-3 math-content"></div>
+                    </div>
+                    <div id="quiz-results" class="hidden text-center py-6">
+                        <div class="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-2xl mx-auto mb-4"><i class="fas fa-award"></i></div>
+                        <h3 class="text-2xl font-bold mb-2">Examen terminé !</h3>
+                        <p id="quiz-score-text" class="text-xl font-bold text-blue-600 mb-4">Note : 16/20</p>
+                        <p id="quiz-mention-text" class="text-gray-600 mb-6 italic">Mention Très Bien</p>
+                        <button onclick="startQuizExam()" class="bg-blue-600 text-white font-bold px-6 py-2.5 rounded-lg hover:bg-blue-700 transition">Recommencer l'examen</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Contenu : Carte Mentale -->
+            <div id="content-mindmap" class="hidden-view">
+                <div class="bg-white p-8 rounded-xl shadow-sm border border-gray-100 max-w-4xl mx-auto math-content" id="mindmap-container">
+                    <p class="text-gray-500 italic text-center">Aucune carte mentale générée pour le moment.</p>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Modal Nouvelle Matière -->
+    <div id="new-subject-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex justify-center items-center z-50">
+        <div class="bg-white rounded-xl p-6 w-full max-w-md mx-4 shadow-xl">
+            <h3 class="text-xl font-bold mb-4">Créer une nouvelle matière</h3>
+            <input type="text" id="subject-name-input" placeholder="Ex: Histoire, NSI, Physique..." class="w-full p-3 border border-gray-300 rounded-lg mb-4 outline-none focus:border-blue-500">
+            <div class="flex justify-end gap-2">
+                <button onclick="closeModal()" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">Annuler</button>
+                <button onclick="addSubject()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Créer</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Modifier / Renommer Matière -->
+    <div id="edit-subject-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex justify-center items-center z-50">
+        <div class="bg-white rounded-xl p-6 w-full max-w-md mx-4 shadow-xl">
+            <h3 class="text-xl font-bold mb-4">Renommer la matière</h3>
+            <input type="text" id="edit-subject-name-input" placeholder="Nouveau nom..." class="w-full p-3 border border-gray-300 rounded-lg mb-4 outline-none focus:border-blue-500">
+            <div class="flex justify-end gap-2">
+                <button onclick="closeEditModal()" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">Annuler</button>
+                <button onclick="saveEditedSubjectName()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Enregistrer</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let appData = JSON.parse(localStorage.getItem('studyGeniusData10')) || { subjects: [] };
+        let currentSubjectIndex = -1;
+        let uploadedFilesArray = [];
+
+        let quizTimerInterval = null;
+        let quizSeconds = 0;
+        let quizCurrentIdx = 0;
+        let quizScore = 0;
+
+        function saveData() { localStorage.setItem('studyGeniusData10', JSON.stringify(appData)); updateGlobalStats(); }
+
+        function renderMath() {
+            if (typeof renderMathInElement === 'function') {
+                renderMathInElement(document.body, {
+                    delimiters: [
+                        {left: '$$', right: '$$', display: true},
+                        {left: '$', right: '$', display: false},
+                        {left: '\\(', right: '\\)', display: false},
+                        {left: '\\[', right: '\\]', display: true}
+                    ],
+                    throwOnError: false
+                });
+            }
+        }
+
+        function updateGlobalStats() {
+            let totalSheets = 0, totalExos = 0, totalQuizzes = 0;
+            appData.subjects.forEach(s => {
+                if(s.masterSheet) totalSheets += 1;
+                if(s.exercises) totalExos += s.exercises.length;
+                if(s.quizzes) totalQuizzes += s.quizzes.length;
+            });
+            document.getElementById('stat-subjects').innerText = appData.subjects.length;
+            document.getElementById('stat-sheets').innerText = totalSheets;
+            document.getElementById('stat-exercises').innerText = totalExos;
+            document.getElementById('stat-quizzes').innerText = totalQuizzes;
+        }
+
+        document.getElementById('file-input').addEventListener('change', function(e) {
+            const files = Array.from(e.target.files);
+            if (files.length === 0) return;
+
+            files.forEach(file => {
+                const reader = new FileReader();
+                if (file.type === "text/plain") {
+                    reader.onload = function(event) {
+                        uploadedFilesArray.push({ name: file.name, type: 'text', data: event.target.result });
+                        renderFileList();
+                    };
+                    reader.readAsText(file);
+                } else if (file.type === "application/pdf") {
+                    reader.onload = function(event) {
+                        const base64Data = event.target.result.split(',')[1];
+                        uploadedFilesArray.push({ name: file.name, type: 'pdf', data: base64Data });
+                        renderFileList();
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+            e.target.value = "";
+        });
+
+        function renderFileList() {
+            const container = document.getElementById('file-list-container');
+            if (uploadedFilesArray.length === 0) {
+                container.innerHTML = `<p class="text-xs text-gray-500 italic">Aucun fichier sélectionné.</p>`;
+                return;
+            }
+            container.innerHTML = '';
+            uploadedFilesArray.forEach((f, idx) => {
+                container.innerHTML += `
+                    <div class="flex justify-between items-center bg-white p-2 rounded border border-blue-200 text-xs">
+                        <span class="font-medium text-blue-900 truncate"><i class="fas fa-file-alt mr-1"></i> ${f.name}</span>
+                        <button onclick="removeFile(${idx})" class="text-red-500 hover:text-red-700 ml-2 font-bold px-1"><i class="fas fa-times"></i></button>
+                    </div>
+                `;
+            });
+        }
+
+        function removeFile(index) {
+            uploadedFilesArray.splice(index, 1);
+            renderFileList();
+        }
+
+        function showDashboard() {
+            if(quizTimerInterval) clearInterval(quizTimerInterval);
+            document.getElementById('dashboard-view').classList.remove('hidden-view');
+            document.getElementById('subject-view').classList.add('hidden-view');
+            renderDashboard();
+            updateGlobalStats();
+        }
+
+        function showSubject(index) {
+            currentSubjectIndex = index;
+            document.getElementById('dashboard-view').classList.add('hidden-view');
+            document.getElementById('subject-view').classList.remove('hidden-view');
+            const subject = appData.subjects[index];
+            document.getElementById('current-subject-title').innerText = subject.name;
+            const savedApiKey = localStorage.getItem('geminiApiKey');
+            if(savedApiKey) document.getElementById('api-key-input').value = savedApiKey;
+            document.getElementById('course-text').value = '';
+            document.getElementById('file-input').value = '';
+            uploadedFilesArray = [];
+            renderFileList();
+            document.getElementById('error-msg').classList.add('hidden');
+            switchTab('generator');
+            updateSubjectViews();
+        }
+
+        function switchTab(tabName) {
+            if(quizTimerInterval) clearInterval(quizTimerInterval);
+            const tabs = ['generator', 'source', 'masterSheet', 'exercises', 'quiz', 'mindmap'];
+            tabs.forEach(t => {
+                document.getElementById('content-' + t).classList.add('hidden-view');
+                document.getElementById('tab-' + t).className = "py-2 px-4 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium text-sm";
+            });
+            document.getElementById('content-' + tabName).classList.remove('hidden-view');
+            document.getElementById('tab-' + tabName).className = "py-2 px-4 border-b-2 border-blue-600 text-blue-600 font-medium text-sm";
+            
+            if(tabName === 'quiz') resetQuizExamView();
+            setTimeout(renderMath, 100);
+        }
+
+        function renderDashboard() {
+            const grid = document.getElementById('subjects-grid');
+            grid.innerHTML = '';
+            appData.subjects.forEach((subject, index) => {
+                grid.innerHTML += `
+                    <div onclick="showSubject(${index})" class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition cursor-pointer group">
+                        <div class="w-12 h-12 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center text-xl mb-4 group-hover:scale-110 transition"><i class="fas fa-book"></i></div>
+                        <h3 class="text-xl font-bold mb-2">${subject.name}</h3>
+                        <p class="text-xs text-gray-500">
+                            ${subject.masterSheet ? '1 Fiche experte' : '0 fiche'} • 
+                            ${subject.exercises ? subject.exercises.length : 0} exos • 
+                            ${subject.quizzes ? subject.quizzes.length : 0} QCM
+                        </p>
+                    </div>
+                `;
+            });
+        }
+
+        function openNewSubjectModal() { document.getElementById('new-subject-modal').classList.remove('hidden'); }
+        function closeModal() { document.getElementById('new-subject-modal').classList.add('hidden'); }
+        
+        function addSubject() {
+            const name = document.getElementById('subject-name-input').value.trim();
+            if (name) {
+                appData.subjects.push({ name: name, source: "", masterSheet: "", exercises: [], quizzes: [], mindmap: "" });
+                saveData();
+                closeModal();
+                document.getElementById('subject-name-input').value = '';
+                renderDashboard();
+            }
+        }
+
+        // Fonctions pour renommer et supprimer
+        function openEditSubjectModal() {
+            const subject = appData.subjects[currentSubjectIndex];
+            document.getElementById('edit-subject-name-input').value = subject.name;
+            document.getElementById('edit-subject-modal').classList.remove('hidden');
+        }
+
+        function closeEditModal() {
+            document.getElementById('edit-subject-modal').classList.add('hidden');
+        }
+
+        function saveEditedSubjectName() {
+            const newName = document.getElementById('edit-subject-name-input').value.trim();
+            if (newName) {
+                appData.subjects[currentSubjectIndex].name = newName;
+                saveData();
+                document.getElementById('current-subject-title').innerText = newName;
+                closeEditModal();
+                renderDashboard();
+            }
+        }
+
+        function deleteCurrentSubject() {
+            const subjectName = appData.subjects[currentSubjectIndex].name;
+            if (confirm(`Êtes-vous sûr de vouloir supprimer la matière "${subjectName}" ? Cette action est irréversible.`)) {
+                appData.subjects.splice(currentSubjectIndex, 1);
+                saveData();
+                showDashboard();
+            }
+        }
+
+        function updateSubjectViews() {
+            const subject = appData.subjects[currentSubjectIndex];
+            document.getElementById('source-container').innerText = subject.source || "Aucun cours source enregistré.";
+            document.getElementById('masterSheet-container').innerHTML = subject.masterSheet ? subject.masterSheet.replace(/\n/g, '<br>') : '<p class="text-gray-500 italic">Aucune fiche magistrale générée pour le moment.</p>';
+            
+            const exContainer = document.getElementById('exercises-container');
+            exContainer.innerHTML = '';
+            if (subject.exercises && subject.exercises.length > 0) {
+                subject.exercises.forEach((ex, i) => {
+                    exContainer.innerHTML += `
+                        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                            <h4 class="font-bold text-lg text-blue-600 mb-2">Exercice ${i+1} /${subject.exercises.length}</h4>
+                            <p class="font-medium text-slate-800 mb-4">${ex.question}</p>
+                            <details class="bg-slate-50 p-4 rounded-lg border border-slate-200">
+                                <summary class="font-bold text-sm text-slate-600 cursor-pointer select-none"><i class="fas fa-lightbulb mr-1"></i> Afficher la correction détaillée</summary>
+                                <p class="mt-3 text-sm text-slate-700 whitespace-pre-wrap">${ex.correction}</p>
+                            </details>
+                        </div>
+                    `;
+                });
+            } else { exContainer.innerHTML = '<p class="text-gray-500 italic text-center">Aucun exercice généré.</p>'; }
+
+            const mmContainer = document.getElementById('mindmap-container');
+            mmContainer.innerHTML = subject.mindmap ? `<h3 class="text-xl font-bold mb-4 text-blue-600"><i class="fas fa-project-diagram mr-2"></i> Carte Mentale</h3><div class="whitespace-pre-wrap font-mono text-sm bg-slate-50 p-6 rounded-lg border border-slate-200 leading-relaxed">${subject.mindmap}</div>` : '<p class="text-gray-500 italic text-center">Aucune carte mentale générée.</p>';
+
+            setTimeout(renderMath, 100);
+        }
+
+        function resetQuizExamView() {
+            if(quizTimerInterval) clearInterval(quizTimerInterval);
+            document.getElementById('quiz-intro').classList.remove('hidden');
+            document.getElementById('quiz-active').classList.add('hidden');
+            document.getElementById('quiz-results').classList.add('hidden');
+        }
+
+        function startQuizExam() {
+            const subject = appData.subjects[currentSubjectIndex];
+            if (!subject.quizzes || subject.quizzes.length === 0) {
+                alert("Aucun quiz disponible pour cette matière.");
+                return;
+            }
+            quizCurrentIdx = 0;
+            quizScore = 0;
+            quizSeconds = 0;
+
+            document.getElementById('quiz-intro').classList.add('hidden');
+            document.getElementById('quiz-results').classList.add('hidden');
+            document.getElementById('quiz-active').classList.remove('hidden');
+
+            if(quizTimerInterval) clearInterval(quizTimerInterval);
+            quizTimerInterval = setInterval(() => {
+                quizSeconds++;
+                let mins = Math.floor(quizSeconds / 60).toString().padStart(2, '0');
+                let secs = (quizSeconds % 60).toString().padStart(2, '0');
+                document.getElementById('quiz-timer').innerHTML = `<i class="fas fa-stopwatch mr-1"></i> ${mins}:${secs}`;
+            }, 1000);
+
+            loadQuizQuestion();
+        }
+
+        function loadQuizQuestion() {
+            const subject = appData.subjects[currentSubjectIndex];
+            const q = subject.quizzes[quizCurrentIdx];
+            document.getElementById('quiz-progress').innerText = `Question ${quizCurrentIdx + 1} /${subject.quizzes.length}`;
+            document.getElementById('quiz-question-title').innerText = q.question;
+            
+            const container = document.getElementById('quiz-options-container');
+            container.innerHTML = '';
+            q.options.forEach(opt => {
+                container.innerHTML += `<button onclick="answerExamQuestion(this, '${opt === q.answer}')" class="w-full text-left p-3 border rounded-lg hover:bg-gray-50 transition text-sm">${opt}</button>`;
+            });
+            setTimeout(renderMath, 100);
+        }
+
+        function answerExamQuestion(btn, isCorrect) {
+            if (isCorrect === 'true') {
+                quizScore++;
+                btn.classList.add('bg-green-50', 'border-green-500', 'text-green-700', 'font-bold');
+            } else {
+                btn.classList.add('bg-red-50', 'border-red-500', 'text-red-700');
+            }
+            
+            const subject = appData.subjects[currentSubjectIndex];
+            setTimeout(() => {
+                quizCurrentIdx++;
+                if (quizCurrentIdx < subject.quizzes.length) {
+                    loadQuizQuestion();
+                } else {
+                    clearInterval(quizTimerInterval);
+                    showQuizResults();
+                }
+            }, 800);
+        }
+
+        function showQuizResults() {
+            const subject = appData.subjects[currentSubjectIndex];
+            const total = subject.quizzes.length;
+            const grade = Math.round((quizScore / total) * 20);
+            
+            document.getElementById('quiz-active').classList.add('hidden');
+            document.getElementById('quiz-results').classList.remove('hidden');
+            document.getElementById('quiz-score-text').innerText = `Note finale : ${grade} / 20 (${quizScore}/${total} correct)`;
+            
+            let mention = "À retravailler";
+            if(grade >= 16) mention = "Mention Très Bien 🌟";
+            else if(grade >= 14) mention = "Mention Bien 👍";
+            else if(grade >= 10) mention = "Admis - Assez Bien";
+            document.getElementById('quiz-mention-text').innerText = mention;
+        }
+
+        async function generateContent() {
+            const apiKeyInput = document.getElementById('api-key-input').value.trim();
+            const courseText = document.getElementById('course-text').value.trim();
+            const btn = document.getElementById('generate-btn');
+            const msg = document.getElementById('loading-msg');
+            const errorMsgBox = document.getElementById('error-msg');
+            const errorDetails = document.getElementById('error-details');
+
+            if (!apiKeyInput) { errorDetails.innerText = "Veuillez entrer votre clé API Gemini."; errorMsgBox.classList.remove('hidden'); return; }
+            if (uploadedFilesArray.length === 0 && !courseText) { errorDetails.innerText = "Veuillez importer au moins un document ou coller votre texte."; errorMsgBox.classList.remove('hidden'); return; }
+
+            localStorage.setItem('geminiApiKey', apiKeyInput);
+            errorMsgBox.classList.add('hidden');
+            btn.classList.add('hidden');
+            msg.classList.remove('hidden');
+
+            const basePrompt = `Tu es un professeur expert universitaire. Analyse l'intégralité des documents et textes fournis. Tu dois retourner ta réponse UNIQUEMENT sous la forme d'un objet JSON brut. N'inclus aucune balise markdown (pas de \`\`\`json), aucun texte avant ou après. Le JSON doit suivre strictement cette structure :
+            {
+              "masterSheet": "Rédige une fiche de révision magistrale, structurée et pédagogique comprenant : 1. Titre du chapitre, 2. Objectifs, 3. Plan, 4. Explications détaillées des notions (définitions, reformulations, règles, méthodes pas à pas, exemples), 5. Erreurs fréquentes à éviter, 6. Résumé final. Utilise la syntaxe KaTeX ($...$) pour les mathématiques.",
+              "exercises": [
+                {"question": "Énoncé d'un exercice d'application rigoureux.", "correction": "Correction détaillée pas à pas."}
+              ],
+              "quizzes": [
+                {"question": "Question de QCM ?", "options": ["Faux1", "Faux2", "Vrai", "Faux3"], "answer": "Vrai"}
+              ],
+              "mindmap": "Une carte mentale textuelle hiérarchisée sous forme d'arborescence (avec des tirets)."
+            }
+            Génère EXACTEMENT 10 exercices progressifs dans le tableau 'exercises' et 5 questions de quiz. Évite absolument d'utiliser des retours à la ligne non échappés (\n) à l'intérieur des valeurs de chaînes de caractères du JSON.`;
+
+            let partsArray = [];
+            let sourceSummaryText = "Documents sources :\n";
+
+            uploadedFilesArray.forEach(f => {
+                sourceSummaryText += `- Fichier : ${f.name}\n`;
+                if (f.type === 'pdf') {
+                    partsArray.push({
+                        inlineData: {
+                            mimeType: "application/pdf",
+                            data: f.data
+                        }
+                    });
+                } else if (f.type === 'text') {
+                    partsArray.push({ text: `Contenu du fichier ${f.name} :\n${f.data}` });
+                }
+            });
+
+            if (courseText) {
+                sourceSummaryText += `- Texte additionnel saisi par l'utilisateur.\n`;
+                partsArray.push({ text: `Texte additionnel : ${courseText}` });
+            }
+
+            partsArray.push({ text: basePrompt });
+
+            try {
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${apiKeyInput}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ contents: [{ parts: partsArray }] })
+                });
+
+                if (!response.ok) {
+                    const errData = await response.json();
+                    let exactError = "Erreur Inconnue";
+                    if (errData && errData.error && errData.error.message) exactError = errData.error.message;
+                    throw new Error(`Google a refusé la demande. Motif : ${exactError}`);
+                }
+
+                const data = await response.json();
+                let aiText = data.candidates[0].content.parts[0].text;
+                
+                aiText = aiText.replace(/```json/gi, '').replace(/```/g, '').trim();
+                
+                const firstBrace = aiText.indexOf('{');
+                const lastBrace = aiText.lastIndexOf('}');
+                if (firstBrace !== -1 && lastBrace !== -1) {
+                    aiText = aiText.substring(firstBrace, lastBrace + 1);
+                }
+
+                let parsedData;
+                try {
+                    parsedData = JSON.parse(aiText);
+                } catch (e1) {
+                    try {
+                        let cleanedText = aiText.replace(/[\u0000-\u001F]+/g, " ");
+                        parsedData = JSON.parse(cleanedText);
+                    } catch (e2) {
+                        throw new Error("L'IA a renvoyé un format de données invalide. Réessayez.");
+                    }
+                }
+
+                appData.subjects[currentSubjectIndex].source = sourceSummaryText + (courseText ? `\nTexte :\n${courseText}` : "");
+                appData.subjects[currentSubjectIndex].masterSheet = parsedData.masterSheet || "Fiche générée.";
+                appData.subjects[currentSubjectIndex].exercises = parsedData.exercises || [];
+                appData.subjects[currentSubjectIndex].quizzes = parsedData.quizzes || [];
+                appData.subjects[currentSubjectIndex].mindmap = parsedData.mindmap || "";
+                saveData();
+
+                updateSubjectViews();
+                switchTab('masterSheet'); 
+                
+            } catch (error) {
+                errorDetails.innerText = error.message;
+                errorMsgBox.classList.remove('hidden');
+            } finally {
+                btn.classList.remove('hidden');
+                msg.classList.add('hidden');
+            }
+        }
+
+        renderDashboard();
+        updateGlobalStats();
+    </script>
+</body>
+</html>
